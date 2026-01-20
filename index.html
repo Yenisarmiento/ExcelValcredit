@@ -71,9 +71,7 @@
   <div id="app" class="h-full w-full flex flex-col overflow-auto"><!-- Header -->
    <header id="header-section" class="bg-slate-800 text-white py-6 px-4 shadow-lg">
     <div class="max-w-4xl mx-auto text-center">
-     <div class="flex items-center justify-center gap-3 mb-2">
-      <svg class="w-10 h-10" viewbox="0 0 40 40" fill="none"><rect x="4" y="4" width="32" height="32" rx="4" fill="#dc2626" /> <path d="M12 12h16v2H12zM12 18h16v2H12zM12 24h10v2H12z" fill="white" /> <path d="M26 20l6 10H20l6-10z" fill="#22c55e" />
-      </svg>
+     <div class="mb-2">
       <h1 id="main-title" class="text-2xl md:text-3xl font-bold">Convertidor PDF a Excel</h1>
      </div>
      <p id="subtitle" class="text-slate-300 text-sm md:text-base">Extrae tu plan de pagos en formato Excel</p>
@@ -136,10 +134,10 @@
         <thead class="bg-slate-100">
          <tr>
           <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Nº Cuota</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Valor Aval</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Cuota sin Aval</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Total a Pagar</th>
           <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Fecha de Pago</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Cuota sin Aval</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Valor Aval</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Total a Pagar</th>
          </tr>
         </thead>
         <tbody id="table-body" class="divide-y divide-slate-200"></tbody>
@@ -160,7 +158,7 @@
     const defaultConfig = {
       main_title: 'Convertidor PDF a Excel',
       subtitle: 'Extrae tu plan de pagos en formato Excel',
-      footer_text: 'Desarrollado por yeni Sarmiento-Rombo',
+      footer_text: 'Aplicación web publicada en GitHub Pages',
       background_color: '#f8fafc',
       header_color: '#1e293b',
       primary_button_color: '#334155',
@@ -507,7 +505,7 @@
         extractedData = parsePaymentPlan(text);
 
         if (extractedData.length === 0) {
-          showStatus('No se detectó una tabla de "PLAN DE PAGOS" válida. Asegúrate de que el PDF contenga información de cuotas con número, valor y fecha.', 'error');
+          showStatus('No se detect   una tabla de "PLAN DE PAGOS" válida. Asegúrate de que el PDF contenga información de cuotas con número, valor y fecha.', 'error');
           convertBtn.disabled = false;
           convertBtn.style.backgroundColor = config.primary_button_color || defaultConfig.primary_button_color;
           return;
@@ -519,10 +517,10 @@
         tableBody.innerHTML = extractedData.map(row => `
           <tr class="hover:bg-slate-50">
             <td class="px-4 py-3 text-sm text-slate-800 font-semibold">${row.cuota}</td>
-            <td class="px-4 py-3 text-sm text-amber-600 font-medium">$${formatCOP(row.valorAval)}</td>
-            <td class="px-4 py-3 text-sm text-blue-600 font-medium">$${formatCOP(row.cuotaSinAval)}</td>
-            <td class="px-4 py-3 text-sm text-slate-800 font-bold">$${formatCOP(row.valorTotalNum)}</td>
             <td class="px-4 py-3 text-sm text-slate-600">${row.fecha}</td>
+            <td class="px-4 py-3 text-sm text-blue-600 font-medium">$${formatCOP(row.cuotaSinAval)}</td>
+            <td class="px-4 py-3 text-sm text-amber-600 font-medium">$${formatCOP(row.valorAval)}</td>
+            <td class="px-4 py-3 text-sm text-slate-800 font-bold">$${formatCOP(row.valorTotalNum)}</td>
           </tr>
         `).join('');
         tablePreview.classList.remove('hidden');
@@ -530,15 +528,16 @@
         // Create Excel
         showStatus('Generando archivo Excel...', 'loading');
 
-     const wsData = [
-  ['numero_cuota', 'fecha_pago', 'capital', 'aval'],
-  ...extractedData.map(row => [
-    row.cuota,
-    row.fecha,
-    row.cuotaSinAval,   // capital (cuota sin aval)
-    row.valorAval       // aval
-  ])
-];
+        const wsData = [
+          ['Nº Cuota', 'Fecha de Pago', 'Cuota sin Aval', 'Valor Aval', 'Total a Pagar'],
+          ...extractedData.map(row => [
+            row.cuota, 
+            row.fecha,
+            `$${formatCOP(row.cuotaSinAval)}`, 
+            `$${formatCOP(row.valorAval)}`, 
+            `$${formatCOP(row.valorTotalNum)}`
+          ])
+        ];
 
         const ws = XLSX.utils.aoa_to_sheet(wsData);
         
@@ -554,7 +553,7 @@
         workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, ws, 'Plan de Pagos');
 
-        showStatus('¡Excel generado exitosamente! Haz clic en "Descargar Excel" para obtener tu archivo.', 'success');
+        showStatus('  Excel generado exitosamente! Haz clic en "Descargar Excel" para obtener tu archivo.', 'success');
         
         downloadBtn.disabled = false;
         downloadBtn.style.backgroundColor = config.secondary_button_color || defaultConfig.secondary_button_color;
@@ -608,6 +607,5 @@
       }
     });
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c0fc4c9625c3ecd',t:'MTc2ODkyNDY1OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
-
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c10a16065353ecd',t:'MTc2ODkzMzY5My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
