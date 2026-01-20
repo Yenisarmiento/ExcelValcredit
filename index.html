@@ -160,7 +160,7 @@
     const defaultConfig = {
       main_title: 'Convertidor PDF a Excel',
       subtitle: 'Extrae tu plan de pagos en formato Excel',
-      footer_text: 'Aplicación web publicada en GitHub Pages',
+      footer_text: 'Desarrollado por yeni Sarmiento-Rombo',
       background_color: '#f8fafc',
       header_color: '#1e293b',
       primary_button_color: '#334155',
@@ -530,16 +530,15 @@
         // Create Excel
         showStatus('Generando archivo Excel...', 'loading');
 
-        const wsData = [
-          ['Nº Cuota', 'Valor Aval', 'Cuota sin Aval', 'Total a Pagar', 'Fecha de Pago'],
-          ...extractedData.map(row => [
-            row.cuota, 
-            `$${formatCOP(row.valorAval)}`, 
-            `$${formatCOP(row.cuotaSinAval)}`, 
-            `$${formatCOP(row.valorTotalNum)}`, 
-            row.fecha
-          ])
-        ];
+     const wsData = [
+  ['numero_cuota', 'fecha_pago', 'capital', 'aval'],
+  ...extractedData.map(row => [
+    row.cuota,
+    row.fecha,
+    row.cuotaSinAval,   // capital (cuota sin aval)
+    row.valorAval       // aval
+  ])
+];
 
         const ws = XLSX.utils.aoa_to_sheet(wsData);
         
@@ -610,4 +609,5 @@
     });
   </script>
  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c0fc4c9625c3ecd',t:'MTc2ODkyNDY1OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+
 </html>
