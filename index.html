@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="es" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Convertidor PDF a Excel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <script src="/_sdk/element_sdk.js"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .drop-zone {
+      transition: all 0.3s ease;
+    }
+    
+    .drop-zone.dragover {
+      border-color: #1e40af;
+      background-color: #eff6ff;
+      transform: scale(1.01);
+    }
+    
+    .btn-primary {
+      transition: all 0.2s ease;
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+    }
+    
+    .btn-secondary {
+      transition: all 0.2s ease;
+    }
+    
+    .btn-secondary:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+    
+    .status-message {
+      animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .loading {
+      animation: pulse 1.5s infinite;
+    }
+    
+    .preview-frame {
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full bg-slate-50">
+  <div id="app" class="h-full w-full flex flex-col overflow-auto"><!-- Header -->
+   <header id="header-section" class="bg-slate-800 text-white py-6 px-4 shadow-lg">
+    <div class="max-w-4xl mx-auto text-center">
+     <div class="flex items-center justify-center gap-3 mb-2">
+      <svg class="w-10 h-10" viewbox="0 0 40 40" fill="none"><rect x="4" y="4" width="32" height="32" rx="4" fill="#dc2626" /> <path d="M12 12h16v2H12zM12 18h16v2H12zM12 24h10v2H12z" fill="white" /> <path d="M26 20l6 10H20l6-10z" fill="#22c55e" />
+      </svg>
+      <h1 id="main-title" class="text-2xl md:text-3xl font-bold">Convertidor PDF a Excel</h1>
+     </div>
+     <p id="subtitle" class="text-slate-300 text-sm md:text-base">Extrae tu plan de pagos en formato Excel</p>
+    </div>
+   </header><!-- Main Content -->
+   <main class="flex-1 py-8 px-4">
+    <div class="max-w-4xl mx-auto"><!-- Upload Zone -->
+     <div id="drop-zone" class="drop-zone border-2 border-dashed border-slate-300 rounded-xl p-8 text-center bg-white mb-6 cursor-pointer">
+      <div class="flex flex-col items-center gap-4">
+       <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center">
+        <svg class="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        </svg>
+       </div>
+       <div>
+        <p class="text-slate-700 font-medium mb-1">Arrastra y suelta tu archivo PDF aquí</p>
+        <p class="text-slate-500 text-sm">o</p>
+       </div><label for="file-input" class="btn-primary bg-slate-700 hover:bg-slate-800 text-white px-6 py-2.5 rounded-lg font-medium cursor-pointer inline-flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg> Seleccionar PDF </label> <input type="file" id="file-input" accept=".pdf" class="hidden">
+       <p class="text-slate-400 text-xs mt-2">Compatible con planes de pagos financieros</p>
+      </div>
+     </div><!-- File Info -->
+     <div id="file-info" class="hidden bg-white rounded-xl p-4 mb-6 border border-slate-200">
+      <div class="flex items-center gap-3">
+       <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+        <svg class="w-6 h-6 text-red-600" fill="currentColor" viewbox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 2l5 5h-5V4zM9 13h6v2H9v-2zm0 4h6v2H9v-2zm0-8h2v2H9V9z" />
+        </svg>
+       </div>
+       <div class="flex-1 min-w-0">
+        <p id="file-name" class="font-medium text-slate-800 truncate">documento.pdf</p>
+        <p id="file-size" class="text-sm text-slate-500">0 KB</p>
+       </div><button id="remove-file" class="text-slate-400 hover:text-slate-600 p-1">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg></button>
+      </div>
+     </div><!-- PDF Preview -->
+     <div id="preview-section" class="hidden mb-6">
+      <h3 class="text-slate-700 font-medium mb-3 flex items-center gap-2">
+       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+       </svg> Vista previa del PDF</h3>
+      <div class="preview-frame rounded-xl border border-slate-200 p-6 min-h-[200px]">
+       <div id="preview-content" class="text-sm text-slate-600 whitespace-pre-wrap max-h-[300px] overflow-auto"></div>
+      </div>
+     </div><!-- Status Messages -->
+     <div id="status-container" class="mb-6"></div><!-- Action Buttons -->
+     <div class="flex flex-col sm:flex-row gap-3 justify-center"><button id="convert-btn" disabled class="btn-primary bg-slate-700 hover:bg-slate-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white px-8 py-3 rounded-lg font-semibold inline-flex items-center justify-center gap-2 shadow-md">
+       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+       </svg> Convertir a Excel </button> <button id="download-btn" disabled class="btn-secondary bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white px-8 py-3 rounded-lg font-semibold inline-flex items-center justify-center gap-2 shadow-md">
+       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+       </svg> Descargar Excel </button>
+     </div><!-- Table Preview -->
+     <div id="table-preview" class="hidden mt-6 bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div class="bg-slate-50 px-4 py-3 border-b border-slate-200">
+       <h3 class="font-medium text-slate-700 flex items-center gap-2">
+        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+        </svg> Plan de Pagos Detectado</h3>
+      </div>
+      <div class="overflow-x-auto">
+       <table id="data-table" class="w-full">
+        <thead class="bg-slate-100">
+         <tr>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Nº Cuota</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Valor Aval</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Cuota sin Aval</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Total a Pagar</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Fecha de Pago</th>
+         </tr>
+        </thead>
+        <tbody id="table-body" class="divide-y divide-slate-200"></tbody>
+       </table>
+      </div>
+     </div>
+    </div>
+   </main><!-- Footer -->
+   <footer id="footer-section" class="bg-slate-800 text-slate-400 py-4 px-4 text-center text-sm">
+    <p id="footer-text">Aplicación web publicada en GitHub Pages</p>
+   </footer>
+  </div>
+  <script>
+    // Initialize PDF.js worker
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    // Default configuration
+    const defaultConfig = {
+      main_title: 'Convertidor PDF a Excel',
+      subtitle: 'Extrae tu plan de pagos en formato Excel',
+      footer_text: 'Aplicación web publicada en GitHub Pages',
+      background_color: '#f8fafc',
+      header_color: '#1e293b',
+      primary_button_color: '#334155',
+      secondary_button_color: '#059669',
+      text_color: '#334155'
+    };
+
+    let config = { ...defaultConfig };
+
+    // Element SDK initialization
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange: async (newConfig) => {
+          config = { ...defaultConfig, ...newConfig };
+          
+          // Update text content
+          document.getElementById('main-title').textContent = config.main_title || defaultConfig.main_title;
+          document.getElementById('subtitle').textContent = config.subtitle || defaultConfig.subtitle;
+          document.getElementById('footer-text').textContent = config.footer_text || defaultConfig.footer_text;
+          
+          // Update colors
+          document.getElementById('app').style.backgroundColor = config.background_color || defaultConfig.background_color;
+          document.getElementById('header-section').style.backgroundColor = config.header_color || defaultConfig.header_color;
+          document.getElementById('footer-section').style.backgroundColor = config.header_color || defaultConfig.header_color;
+          
+          // Update button colors
+          const convertBtn = document.getElementById('convert-btn');
+          const downloadBtn = document.getElementById('download-btn');
+          if (!convertBtn.disabled) {
+            convertBtn.style.backgroundColor = config.primary_button_color || defaultConfig.primary_button_color;
+          }
+          if (!downloadBtn.disabled) {
+            downloadBtn.style.backgroundColor = config.secondary_button_color || defaultConfig.secondary_button_color;
+          }
+        },
+        mapToCapabilities: (cfg) => ({
+          recolorables: [
+            {
+              get: () => cfg.background_color || defaultConfig.background_color,
+              set: (value) => {
+                config.background_color = value;
+                window.elementSdk.setConfig({ background_color: value });
+              }
+            },
+            {
+              get: () => cfg.header_color || defaultConfig.header_color,
+              set: (value) => {
+                config.header_color = value;
+                window.elementSdk.setConfig({ header_color: value });
+              }
+            },
+            {
+              get: () => cfg.text_color || defaultConfig.text_color,
+              set: (value) => {
+                config.text_color = value;
+                window.elementSdk.setConfig({ text_color: value });
+              }
+            },
+            {
+              get: () => cfg.primary_button_color || defaultConfig.primary_button_color,
+              set: (value) => {
+                config.primary_button_color = value;
+                window.elementSdk.setConfig({ primary_button_color: value });
+              }
+            },
+            {
+              get: () => cfg.secondary_button_color || defaultConfig.secondary_button_color,
+              set: (value) => {
+                config.secondary_button_color = value;
+                window.elementSdk.setConfig({ secondary_button_color: value });
+              }
+            }
+          ],
+          borderables: [],
+          fontEditable: undefined,
+          fontSizeable: undefined
+        }),
+        mapToEditPanelValues: (cfg) => new Map([
+          ['main_title', cfg.main_title || defaultConfig.main_title],
+          ['subtitle', cfg.subtitle || defaultConfig.subtitle],
+          ['footer_text', cfg.footer_text || defaultConfig.footer_text]
+        ])
+      });
+    }
+
+    // App state
+    let pdfFile = null;
+    let extractedData = [];
+    let workbook = null;
+
+    // DOM Elements
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const fileInfo = document.getElementById('file-info');
+    const fileName = document.getElementById('file-name');
+    const fileSize = document.getElementById('file-size');
+    const removeFileBtn = document.getElementById('remove-file');
+    const previewSection = document.getElementById('preview-section');
+    const previewContent = document.getElementById('preview-content');
+    const statusContainer = document.getElementById('status-container');
+    const convertBtn = document.getElementById('convert-btn');
+    const downloadBtn = document.getElementById('download-btn');
+    const tablePreview = document.getElementById('table-preview');
+    const tableBody = document.getElementById('table-body');
+
+    // Helper functions
+    function formatFileSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    function showStatus(message, type = 'info') {
+      const icons = {
+        info: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+        success: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+        error: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+        loading: '<svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>'
+      };
+
+      const colors = {
+        info: 'bg-blue-50 text-blue-700 border-blue-200',
+        success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        error: 'bg-red-50 text-red-700 border-red-200',
+        loading: 'bg-amber-50 text-amber-700 border-amber-200'
+      };
+
+      statusContainer.innerHTML = `
+        <div class="status-message flex items-center gap-3 p-4 rounded-lg border ${colors[type]}">
+          ${icons[type]}
+          <span class="${type === 'loading' ? 'loading' : ''}">${message}</span>
+        </div>
+      `;
+    }
+
+    function clearStatus() {
+      statusContainer.innerHTML = '';
+    }
+
+    // File handling
+    function handleFile(file) {
+      if (!file || file.type !== 'application/pdf') {
+        showStatus('Por favor, selecciona un archivo PDF válido.', 'error');
+        return;
+      }
+
+      pdfFile = file;
+      fileName.textContent = file.name;
+      fileSize.textContent = formatFileSize(file.size);
+      fileInfo.classList.remove('hidden');
+      dropZone.classList.add('hidden');
+      convertBtn.disabled = false;
+      convertBtn.style.backgroundColor = config.primary_button_color || defaultConfig.primary_button_color;
+      downloadBtn.disabled = true;
+      downloadBtn.style.backgroundColor = '';
+      tablePreview.classList.add('hidden');
+      previewSection.classList.add('hidden');
+      clearStatus();
+      showStatus('PDF cargado correctamente', 'success');
+    }
+
+    function resetApp() {
+      pdfFile = null;
+      extractedData = [];
+      workbook = null;
+      fileInfo.classList.add('hidden');
+      dropZone.classList.remove('hidden');
+      convertBtn.disabled = true;
+      convertBtn.style.backgroundColor = '';
+      downloadBtn.disabled = true;
+      downloadBtn.style.backgroundColor = '';
+      tablePreview.classList.add('hidden');
+      previewSection.classList.add('hidden');
+      clearStatus();
+      fileInput.value = '';
+    }
+
+    // Drag and drop
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        handleFile(files[0]);
+      }
+    });
+
+    dropZone.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        handleFile(e.target.files[0]);
+      }
+    });
+
+    removeFileBtn.addEventListener('click', resetApp);
+
+    // PDF Processing
+    async function extractTextFromPDF(file) {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = '';
+
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map(item => item.str).join(' ');
+        fullText += pageText + '\n';
+      }
+
+      return fullText;
+    }
+
+    function formatCOP(value) {
+      // Format numbers in Colombian peso format: $1.234.567,89
+      const num = parseFloat(value);
+      if (isNaN(num)) return value;
+      
+      return num.toLocaleString('es-CO', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+
+    function parsePaymentPlan(text) {
+      const payments = [];
+      
+      // First, try to find the total AVAL value in the document
+      let totalAval = null;
+      const avalPatterns = [
+        /(?:aval|valor\s+aval|total\s+aval|monto\s+aval)[\s:]*[\$]?\s*([\d.,]+)/gi,
+        /aval[\s\S]{0,50}?[\$]?\s*([\d.,]+)/gi
+      ];
+      
+      for (const pattern of avalPatterns) {
+        const matches = text.matchAll(pattern);
+        for (const match of matches) {
+          const value = parseFloat(match[1].replace(/[,.]/g, ''));
+          if (!isNaN(value) && value > 0 && value < 100000000) {
+            totalAval = value;
+            break;
+          }
+        }
+        if (totalAval) break;
+      }
+
+      // Patterns to detect payment plan rows
+      const patterns = [
+        // Pattern 1: Only Cuota, Total, Fecha
+        /(?:cuota|pago|nro\.?|n[°º]|#)\s*(\d+)\s+[\$]?\s*([\d.,]+)\s+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/gi,
+        // Pattern 2: Table row format with numbers
+        /(\d+)\s+[\$]?\s*([\d.,]+)\s+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/g
+      ];
+
+      // Try each pattern to extract payment rows
+      for (const pattern of patterns) {
+        const matches = text.matchAll(pattern);
+        for (const match of matches) {
+          const cuota = match[1];
+          const valorTotal = match[2];
+          const fecha = match[3];
+
+          // Validate and clean data
+          const numCuota = parseInt(cuota);
+          if (!isNaN(numCuota) && numCuota > 0 && numCuota < 1000) {
+            payments.push({
+              cuota: numCuota,
+              valorTotal: valorTotal.replace(/[^\d.,]/g, ''),
+              fecha: fecha
+            });
+          }
+        }
+        
+        if (payments.length > 0) break;
+      }
+
+      // Remove duplicates and sort
+      const uniquePayments = [];
+      const seen = new Set();
+      
+      for (const p of payments) {
+        const key = `${p.cuota}-${p.valorTotal}-${p.fecha}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          uniquePayments.push(p);
+        }
+      }
+
+      const sortedPayments = uniquePayments.sort((a, b) => a.cuota - b.cuota);
+
+      // Calculate aval per installment
+      const numCuotas = sortedPayments.length;
+      const avalPorCuota = totalAval && numCuotas > 0 ? (totalAval / numCuotas) : null;
+
+      // Add calculated values to each payment
+      sortedPayments.forEach(p => {
+        const total = parseFloat(p.valorTotal.replace(/\./g, '').replace(',', '.'));
+        
+        if (avalPorCuota && !isNaN(total)) {
+          p.valorAval = avalPorCuota;
+          p.cuotaSinAval = total - avalPorCuota;
+          p.valorTotalNum = total;
+        } else {
+          // Fallback: use 30% of total if no aval found
+          p.valorAval = total * 0.30;
+          p.cuotaSinAval = total * 0.70;
+          p.valorTotalNum = total;
+        }
+      });
+
+      return sortedPayments;
+    }
+
+    // Convert button handler
+    convertBtn.addEventListener('click', async () => {
+      if (!pdfFile) return;
+
+      try {
+        showStatus('Cargando PDF...', 'loading');
+        convertBtn.disabled = true;
+        convertBtn.style.backgroundColor = '';
+
+        const text = await extractTextFromPDF(pdfFile);
+        
+        // Show preview
+        previewContent.textContent = text.substring(0, 2000) + (text.length > 2000 ? '...' : '');
+        previewSection.classList.remove('hidden');
+
+        showStatus('Extrayendo tabla de pagos...', 'loading');
+
+        extractedData = parsePaymentPlan(text);
+
+        if (extractedData.length === 0) {
+          showStatus('No se detectó una tabla de "PLAN DE PAGOS" válida. Asegúrate de que el PDF contenga información de cuotas con número, valor y fecha.', 'error');
+          convertBtn.disabled = false;
+          convertBtn.style.backgroundColor = config.primary_button_color || defaultConfig.primary_button_color;
+          return;
+        }
+
+        showStatus(`Tabla detectada: ${extractedData.length} cuotas encontradas`, 'success');
+
+        // Show table preview
+        tableBody.innerHTML = extractedData.map(row => `
+          <tr class="hover:bg-slate-50">
+            <td class="px-4 py-3 text-sm text-slate-800 font-semibold">${row.cuota}</td>
+            <td class="px-4 py-3 text-sm text-amber-600 font-medium">$${formatCOP(row.valorAval)}</td>
+            <td class="px-4 py-3 text-sm text-blue-600 font-medium">$${formatCOP(row.cuotaSinAval)}</td>
+            <td class="px-4 py-3 text-sm text-slate-800 font-bold">$${formatCOP(row.valorTotalNum)}</td>
+            <td class="px-4 py-3 text-sm text-slate-600">${row.fecha}</td>
+          </tr>
+        `).join('');
+        tablePreview.classList.remove('hidden');
+
+        // Create Excel
+        showStatus('Generando archivo Excel...', 'loading');
+
+        const wsData = [
+          ['Nº Cuota', 'Valor Aval', 'Cuota sin Aval', 'Total a Pagar', 'Fecha de Pago'],
+          ...extractedData.map(row => [
+            row.cuota, 
+            `$${formatCOP(row.valorAval)}`, 
+            `$${formatCOP(row.cuotaSinAval)}`, 
+            `$${formatCOP(row.valorTotalNum)}`, 
+            row.fecha
+          ])
+        ];
+
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        
+        // Set column widths
+        ws['!cols'] = [
+          { wch: 12 },
+          { wch: 15 },
+          { wch: 18 },
+          { wch: 15 },
+          { wch: 15 }
+        ];
+
+        workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, ws, 'Plan de Pagos');
+
+        showStatus('¡Excel generado exitosamente! Haz clic en "Descargar Excel" para obtener tu archivo.', 'success');
+        
+        downloadBtn.disabled = false;
+        downloadBtn.style.backgroundColor = config.secondary_button_color || defaultConfig.secondary_button_color;
+        convertBtn.disabled = false;
+        convertBtn.style.backgroundColor = config.primary_button_color || defaultConfig.primary_button_color;
+
+      } catch (error) {
+        console.error('Error processing PDF:', error);
+        showStatus('Error al procesar el PDF. Verifica que el archivo no esté dañado o protegido.', 'error');
+        convertBtn.disabled = false;
+        convertBtn.style.backgroundColor = config.primary_button_color || defaultConfig.primary_button_color;
+      }
+    });
+
+    // Download button handler
+    downloadBtn.addEventListener('click', () => {
+      if (!workbook) {
+        showStatus('No hay datos para descargar. Por favor, convierte un PDF primero.', 'error');
+        return;
+      }
+
+      try {
+        const originalName = pdfFile.name.replace('.pdf', '').replace(/[^a-zA-Z0-9_-]/g, '_');
+        const excelFileName = `${originalName}_plan_pagos.xlsx`;
+        
+        // Generate binary string from workbook
+        const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+        
+        // Create blob and download link
+        const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = excelFileName;
+        link.style.display = 'none';
+        
+        // Append to body, click, and cleanup
+        document.body.appendChild(link);
+        link.click();
+        
+        // Cleanup after a delay
+        setTimeout(() => {
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+        }, 100);
+        
+        showStatus(`✅ Descargando "${excelFileName}"... Revisa tu carpeta de Descargas en unos segundos.`, 'success');
+      } catch (error) {
+        console.error('Error al descargar:', error);
+        showStatus('Error al generar el archivo. Intenta convertir el PDF nuevamente o verifica los permisos del navegador.', 'error');
+      }
+    });
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c0fc4c9625c3ecd',t:'MTc2ODkyNDY1OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
